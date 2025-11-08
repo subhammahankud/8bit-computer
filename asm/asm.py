@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import re
 import sys
@@ -66,50 +66,75 @@ def rich_int(v):
         return int(v)
 
 with open(progf) as f:
+    section = None  # Ensure section is initialized
     for l in f:
-        l = re.sub(";.*", "", l)
-
-        l = l.strip()
-        if l == "":
+        l = re.sub(";.*", "", l).strip()
+        if not l:
             continue
 
         if l == ".text":
             section = TEXT
+            continue
         elif l == ".data":
             section = DATA
-        else:
-            if section == DATA:
-                n, v = map(str.strip, l.split("=", 2))
-                data[str(n)] = int(v)
-            elif section == TEXT:
-                kw = l.split()
-                if kw[0][-1] == ":":
-                    labels[kw[0].rstrip(":")] = cnt
-                else:
-                    current_inst = kw[0]
+            continue
 
-                    if current_inst == "ldi":
-                        r = reg[kw[1]]
-                        kw[0] = (inst[kw[0]] & 0b11111000) | r
-                        del kw[1]
-                        kw[1] = rich_int(kw[1])
-                    elif current_inst in ("push", "pop"):
-                        r = reg[kw[1]]
-                        kw[0] = (inst[kw[0]] & 0b11111000) | r
-                        del kw[1]
-                    elif current_inst == "mov":
-                        op1 = reg[kw[1]]
-                        op2 = reg[kw[2]]
-                        kw[0] = (inst[kw[0]] & 0b11111000) | op2
-                        kw[0] = (kw[0] & 0b11000111) | (op1 << 3)
-                        del kw[2]
-                        del kw[1]
+        if section == DATA:
+            n, v = map(str.strip, l.split("=", 1))
+            data[n] = int(v)
+        elif section == TEXT:
+            kw = l.split()
+            if kw[0].endswith(":"):
+                labels[kw[0].rstrip(":")] = cnt
+                continue
+
+            current_inst = kw[0]
+
+            if current_inst == "ldi":
+                r = reg[kw[1]]
+                opcode = (inst["ldi"] & 0b11111000) | r
+                imm = rich_int(kw[2])
+                mem[cnt] = opcode
+                mem[cnt + 1] = imm
+                cnt += 2
+
+            elif current_inst in ("push", "pop"):
+                r = reg[kw[1]]
+                opcode = (inst[current_inst] & 0b11111000) | r
+                mem[cnt] = opcode
+                cnt += 1
+
+            elif current_inst == "mov":
+                op1 = reg[kw[1]]
+                op2 = reg[kw[2]]
+                opcode = (inst["mov"] & 0b11000111) | (op1 << 3) | op2
+                mem[cnt] = opcode
+                cnt += 1
+
+                # Check if memory reference uses %label
+                if len(kw) > 3 and kw[3].startswith("%"):
+                    mem[cnt] = kw[3]
+                    cnt += 1
+
+            elif current_inst in ("add", "sub", "cmp"):
+                # handle instructions like add M %k
+                opcode = inst[current_inst]
+                mem[cnt] = opcode
+                cnt += 1
+
+                for arg in kw[1:]:
+                    if arg in reg:
+                        mem[cnt] = reg[arg]
+                    elif arg.startswith("%"):
+                        mem[cnt] = arg
                     else:
-                        kw[0] = inst[kw[0]]
+                        mem[cnt] = rich_int(arg)
+                    cnt += 1
 
-                    for a in kw:
-                        mem[cnt] = a
-                        cnt += 1
+            else:
+                # Generic fallback
+                mem[cnt] = inst.get(current_inst, 0)
+                cnt += 1
 
 # Write data into memory
 for k, v in data.items():
@@ -117,11 +142,18 @@ for k, v in data.items():
     mem[cnt] = v
     cnt += 1
 
+# Update label and data address mapping
 data_addr.update(labels)
 
-# Replace variables
+# Replace %labels with numeric addresses
 for i, b in enumerate(mem):
-    if str(b).startswith("%"):
-        mem[i] = data_addr[b.lstrip("%")]
+    if isinstance(b, str) and b.startswith("%"):
+        label_name = b.lstrip("%")
+        if label_name in data_addr:
+            mem[i] = data_addr[label_name]
+        else:
+            print(f"⚠️ Warning: Undefined label {label_name}")
+            mem[i] = 0
 
-print ' '.join(['%02x' % int(b) for b in mem])
+# Print memory dump
+print(' '.join(['%02x' % int(b) for b in mem[:cnt]]))

@@ -55,4 +55,4 @@ for k, v in regs.items():
     instructions["10 %s 111" % k] = "MOV %s M" % v
 
 for k, v in instructions.items():
-    print k.replace(" ", ""), v
+    print(k.replace(" ", ""), v)
