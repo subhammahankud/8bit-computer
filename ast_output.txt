@@ -1,10 +1,10 @@
     AST Node: int a;
     AST Node: int b;
     AST Node: int c;
-    AST Node: a = 10;
-    AST Node: b = 20;
+    AST Node: a = 1;
+    AST Node: b = 2;
     AST Node: c = a + b;
-AST Node: if (c == 30) {
+AST Node: if (c == 3) {
     AST Node: c = c + 1;
 } else {
     AST Node: c=c-1;

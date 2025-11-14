@@ -1,14 +1,14 @@
 .text
 
-ldi A 10
+ldi A 1
 mov M A %i
-ldi A 20
+ldi A 2
 mov M A %j
 mov A M %i
 add M %j
 mov M A %k
 mov A M %k
-cmp A 30
+cmp A 3
 jne else_part_1
 mov A M %k
 add M %g

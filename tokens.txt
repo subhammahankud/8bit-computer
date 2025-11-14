@@ -10,12 +10,10 @@ Token: ;
 Token: a
 Token: =
 Token: 1
-Token: 0
 Token: ;
 Token: b
 Token: =
 Token: 2
-Token: 0
 Token: ;
 Token: c
 Token: =
@@ -29,7 +27,6 @@ Token: c
 Token: =
 Token: =
 Token: 3
-Token: 0
 Token: )
 Token: c
 Token: =
