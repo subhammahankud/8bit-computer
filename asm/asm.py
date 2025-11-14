@@ -136,11 +136,13 @@ with open(progf) as f:
                 mem[cnt] = inst.get(current_inst, 0)
                 cnt += 1
 
-# Write data into memory
+	
+# Write data into absolute memory addresses
 for k, v in data.items():
-    data_addr[k] = cnt
-    mem[cnt] = v
-    cnt += 1
+    addr = v   # user gives absolute memory address
+    data_addr[k] = addr
+    mem[addr] = v    # store the same value or use 0, depends on architecture
+
 
 # Update label and data address mapping
 data_addr.update(labels)
@@ -152,7 +154,7 @@ for i, b in enumerate(mem):
         if label_name in data_addr:
             mem[i] = data_addr[label_name]
         else:
-            print(f"⚠️ Warning: Undefined label {label_name}")
+            print(f" Warning: Undefined label {label_name}")
             mem[i] = 0
 
 # Print memory dump
